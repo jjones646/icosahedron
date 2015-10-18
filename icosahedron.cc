@@ -262,29 +262,48 @@ void timer(int)
   glutTimerFunc(1000.0 / updateRate, timer, 0);
 }
 
+void showUsageAndExit(void)
+{
+  std::cout << "\tUsage: ./icosahedron <testnumber> [depth]" << std::endl;
+  exit(1);
+}
+
 int main(int argc, char** argv)
 {
-  if (argc < 2)
+  if ( argc < 1 )
   {
-    std::cout << "Usage: ./icosahedron <testnumber> [depth]" << std::endl;
-    exit(1);
+    showUsageAndExit();
   } else {
-    // Set the global test number
+    // Set the global test numbers to
     testNumber = atol(argv[1]);
-    depth = atoi(argv[2]);
-  }
 
-  if (testNumber < 1 || testNumber > 5) {
-    std::cout << "--  Invalid test number " << testNumber << ". Valid test numbers range from 1 to 5" << std::endl;
-    exit(2);
-  }
+    // check for a valid test number
+    if (testNumber < 1 || testNumber > 5) {
+      std::cout << "--  Invalid test number " << +testNumber << ". Valid test numbers range from 1 to 5." << std::endl;
+      exit(2);
+    }
 
-  if (depth > 5) {
-    std::cout << "--  Max depth exceeded. Adjusting depth from " << depth << " to 5" << std::endl;
-    depth = 5;
-  } else if (depth < 1) {
-    std::cout << "--  Min depth is 1. Adjusting depth from " << +depth << " to 1" << std::endl;
-    depth = 1;
+    // if we are running test 5 or 6, we'll need a 2nd argument
+    if (testNumber > 4) {
+      if ( argc < 3 ) {
+        showUsageAndExit();
+      } else if ( argc > 3 ) {
+        std::cout << "--  Invalid number of arguments. Ignoring all excess arguments." << std::endl;
+      }
+      depth = atol(argv[2]);
+      // check for a valid division value
+      if (depth > 5) {
+        std::cout << "--  Max depth exceeded. Adjusting depth from " << +depth << " to 5." << std::endl;
+        depth = 5;
+      } else if (depth < 1) {
+        std::cout << "--  Min depth is 1. Adjusting depth from " << +depth << " to 1." << std::endl;
+        depth = 1;
+      }
+    } else {
+      if ( argc != 2 ) {
+        std::cout << "--  Invalid number of arguments. Ignoring all excess arguments." << std::endl;
+      }
+    }
   }
 
   // Initialize glut  and create your window here
@@ -325,8 +344,7 @@ int main(int argc, char** argv)
     break;
 
   default:
-    std::cout << "Usage: ./icosahedron <testnumber>" << endl;
-    exit(1);
+    showUsageAndExit();
     break;
   }
 
