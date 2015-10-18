@@ -76,8 +76,10 @@ int main(int argc, char** argv)
       std::cout << "Usage: ./icosahedron <testnumber>" << endl;
       exit(1);
     }
+
   // Set the global test number
   testNumber = atol(argv[1]);
+
   // Initialize glut  and create your window here
   // Set your glut callbacks here
   // Enter the glut main loop here
@@ -85,17 +87,25 @@ int main(int argc, char** argv)
   switch(testNumber){
     case 1:
     break;
+
     case 2:
     break;
+
     case 3:
     break;
+
     case 4:
     break;
+
     case 5:
     break;
+
     case 6:
     break;
+
     default:
+      std::cout << "Usage: ./icosahedron <testnumber>" << endl;
+      exit(1);
     break;
   }
 
