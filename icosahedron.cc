@@ -22,8 +22,7 @@ static const size_t NFACE = 20;
 static const size_t NVERTEX = 12;
 static int updateRate = 50;
 static int testNumber;  // Global variable indicating which test number is desired
-static const int flat = 1;
-static size_t depth = 1;
+static int depth = 1;
 
 // These are the 12 vertices for the icosahedron
 static GLfloat vdata[NVERTEX][3] = {
@@ -159,7 +158,7 @@ void DrawTriangle(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
   glEnd();
 }
 
-/* 
+/*
  * Recursively subdivide face N times
  * and draw the resulting triangles.
  */
@@ -179,14 +178,12 @@ void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], const size_t depth)
     v23[i] = (v2[i] + v3[i]) / 2.0;
     v31[i] = (v3[i] + v1[i]) / 2.0;
   }
-  /* extrude midpoints to lie on unit sphere */
+  // extrude midpoints to lie on unit sphere
   Normalize(v12); Normalize(v23); Normalize(v31);
 
-  /* recursively subdivide new triangles */
-  subdivide(v1, v12, v31, depth - 1);
-  subdivide(v2, v23, v12, depth - 1);
-  subdivide(v3, v31, v23, depth - 1);
-  subdivide(v12, v23, v31, depth - 1);
+  // recursively subdivide the triangle
+  subdivide(v1, v12, v31, depth - 1); subdivide(v2, v23, v12, depth - 1);
+  subdivide(v3, v31, v23, depth - 1); subdivide(v12, v23, v31, depth - 1);
 }
 
 void Display(void)
@@ -246,10 +243,6 @@ void Init(void)
   //select clearing (background) color
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glShadeModel(GL_FLAT);
-
-  // glShadeModel(GL_SMOOTH);  /* enable smooth shading */
-  // glEnable(GL_LIGHTING);  /* enable lighting */
-  // glEnable(GL_LIGHT0);    /* enable light 0 */
 }
 
 void reshape(int w, int h)
@@ -278,7 +271,20 @@ int main(int argc, char** argv)
   } else {
     // Set the global test number
     testNumber = atol(argv[1]);
-    depth = atol(argv[2]);
+    depth = atoi(argv[2]);
+  }
+
+  if (testNumber < 1 || testNumber > 5) {
+    std::cout << "--  Invalid test number " << testNumber << ". Valid test numbers range from 1 to 5" << std::endl;
+    exit(2);
+  }
+
+  if (depth > 5) {
+    std::cout << "--  Max depth exceeded. Adjusting depth from " << depth << " to 5" << std::endl;
+    depth = 5;
+  } else if (depth < 1) {
+    std::cout << "--  Min depth is 1. Adjusting depth from " << +depth << " to 1" << std::endl;
+    depth = 1;
   }
 
   // Initialize glut  and create your window here
