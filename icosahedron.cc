@@ -3,6 +3,8 @@
 // Jonathan Jones
 
 #include <iostream>
+#include <string>
+#include <sstream>
 #include <math.h>
 #include <memory.h>
 #include <GL/glut.h>
@@ -75,7 +77,7 @@ void Test6(int depth)
 }
 
 /* Normalize a vector of non-zero length */
-void normalize(GLfloat n[3])
+void Normalize(GLfloat n[3])
 {
   // find the normalization value
   GLfloat d = sqrt(
@@ -116,18 +118,9 @@ void NormCrossProd(const GLfloat* u, const GLfloat* v, GLfloat* n_out, const siz
   for ( size_t i = 0; i < sz; ++i ) {
     // make our initial index assumptions
     const size_t ii[2] = { (i + 1) % sz, (i + 2) % sz };
-    // fix erroneous values
-    // for ( size_t j = 0; j < sizeof(ii); ++j )
-    //   if ( ii[j] >= sz )
-    //     ii[j] = 0;
-
     // compute our normalized indexs
     n[i] = u[ii[0]] * v[ii[1]] - u[ii[1]] * v[ii[0]];
   }
-
-  // n[0] = u[1] * v[2] - u[2] * v[1];
-  // n[1] = u[2] * v[0] - u[0] * v[2];
-  // n[2] = u[0] * v[1] - u[1] * v[0];
   // normalize it
   Normalize(n, n_out, sz);
 }
@@ -136,7 +129,7 @@ void NormFace(const GLfloat* v1, const GLfloat* v2, const GLfloat* v3, const siz
 {
   GLfloat d1[sz], d2[sz], n[sz];
   // take the difference between the vectors
-  for (size_t k = 0; k < 3; k++) {
+  for (size_t k = 0; k < sz; k++) {
     d1[k] = v1[k] - v2[k];
     d2[k] = v2[k] - v3[k];
   }
@@ -147,53 +140,47 @@ void NormFace(const GLfloat* v1, const GLfloat* v2, const GLfloat* v3, const siz
 
 /* draw triangle using face normals */
 // void drawTriangleFlat(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3])
-void drawTriangleFlat(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
+void DrawTriangle(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
 {
+  // let openGL know we're about to draw a triangle
   glBegin(GL_TRIANGLES);
+  // draw a normalized face
   NormFace(v1, v2, v3, sz);
+  // set the color for the face
+  float colors[3] = { 0 };
+  for ( size_t i = 0; i < 3; ++i )
+    colors[i] = ((double) rand() / (RAND_MAX));
+
+  glColor3f(colors[0], colors[1], colors[2]);
+  // glColor3f(1.0, 0.0, 0.0);
+  // set the vertex points
   glVertex3fv(v1); glVertex3fv(v2); glVertex3fv(v3);
+  // officially finish this segment of the drawing
   glEnd();
 }
 
-// /* draw triangle using sphere normals */
-// void drawTriangleSmooth(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3])
-// void drawTriangleSmooth(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
-// {
-//   glBegin(GL_TRIANGLES);
-//   glNormal3fv(v1); glVertex3fv(v1);
-//   glNormal3fv(v2); glVertex3fv(v2);
-//   glNormal3fv(v3); glVertex3fv(v3);
-//   glEnd();
-// }
-
-/* recursively subdivide face `depth' times */
-/* and draw the resulting triangles */
-void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], int depth)
+/* 
+ * Recursively subdivide face N times
+ * and draw the resulting triangles.
+ */
+void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], const size_t depth)
 {
   const size_t pts = 3;
   GLfloat v12[pts], v23[pts], v31[pts];
-  int i;
 
   if ( depth == 0 ) {
-    if ( flat == 1 ) {
-      drawTriangleFlat(v1, v2, v3, pts);
-    }
-    // else {
-    //   // drawTriangleSmooth(v1, v2, v3, pts);
-    // }
+    DrawTriangle(v1, v2, v3, pts);
     return;
   }
 
-  /* calculate midpoints of each side */
-  for ( size_t i = 0; i < 3; ++i ) {
+  // compute the midpoints for all sides
+  for ( size_t i = 0; i < pts; ++i ) {
     v12[i] = (v1[i] + v2[i]) / 2.0;
     v23[i] = (v2[i] + v3[i]) / 2.0;
     v31[i] = (v3[i] + v1[i]) / 2.0;
   }
   /* extrude midpoints to lie on unit sphere */
-  normalize(v12);
-  normalize(v23);
-  normalize(v31);
+  Normalize(v12); Normalize(v23); Normalize(v31);
 
   /* recursively subdivide new triangles */
   subdivide(v1, v12, v31, depth - 1);
@@ -202,25 +189,23 @@ void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], int depth)
   subdivide(v12, v23, v31, depth - 1);
 }
 
-void display(void)
+void Display(void)
 {
-  static int pass;
-
-  // clog << "Displaying pass " << ++pass << endl;
   // clear all
   glClear(GL_COLOR_BUFFER_BIT);
   // Clear the matrix
   glLoadIdentity();
   // Set the viewing transformation
-  gluLookAt(0.0, 0.0, 30.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0); // try frustrum
-  //gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+  gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
   // Add some slight animation
   static GLfloat transX = 0.0;
   static GLfloat transY = 0.0;
   static GLfloat transZ = 0.0;
-  static bool    adding = true;
+  static bool    adding = false;
   // glTranslatef(transX, transY, transZ);
-  //glTranslatef(transX, transY, 0.0);
+  const size_t window_x = glutGet(GLUT_WINDOW_X);
+  const size_t window_y = glutGet(GLUT_WINDOW_Y);
+  glTranslatef(window_x, window_y, 0.0);
   if (adding)
   {
     transX += 1.0;
@@ -235,10 +220,9 @@ void display(void)
     transZ -= 1.0;
     if (transX < 0.0) adding = true;
   }
-  //glScalef(1000.0, 1000.0, 0);
-  glScalef(100.0, 100.0, 0);
-  // glScalef(1.0, 1.0, 0);
-  // Try rotating
+  // glScalef(100.0, 100.0, 0);
+  glScalef(window_x, window_x, 0.0);
+  // rotate
   static GLfloat rotX = 0.0;
   static GLfloat rotY = 0.0;
   glRotatef(rotX, 1.0, 0.0, 0.0);
@@ -252,20 +236,20 @@ void display(void)
               &vdata[tindices[i][2]][0],
               depth);
   }
+  glutSetColor(0, 1.0, 0.0, 0.0);
   // Flush buffer
-  //glFlush(); // If single buffering
-  glutSwapBuffers(); // If double buffering
+  glutSwapBuffers();  // for double buffering
 }
 
 void Init(void)
 {
   //select clearing (background) color
   glClearColor(0.0, 0.0, 0.0, 0.0);
-  // glShadeModel(GL_FLAT);
+  glShadeModel(GL_FLAT);
 
-  glShadeModel(GL_SMOOTH);  /* enable smooth shading */
-  glEnable(GL_LIGHTING);  /* enable lighting */
-  glEnable(GL_LIGHT0);    /* enable light 0 */
+  // glShadeModel(GL_SMOOTH);  /* enable smooth shading */
+  // glEnable(GL_LIGHTING);  /* enable lighting */
+  // glEnable(GL_LIGHT0);    /* enable light 0 */
 }
 
 void reshape(int w, int h)
@@ -301,11 +285,18 @@ int main(int argc, char** argv)
   glutInit(&argc, argv);
   // double buffering
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-  glutInitWindowSize(500, 500);
-  glutInitWindowPosition(100, 100);
-  glutCreateWindow("Icosahedron");
 
-  glutSetWindowTitle("Hey");
+  // get our screen dimensions & set our window name depending on what are parameters are
+  const size_t display_width = glutGet(GLUT_SCREEN_WIDTH);
+  const size_t display_height = glutGet(GLUT_SCREEN_HEIGHT);
+  std::ostringstream name_strm;
+  name_strm << "Icosahedron\t(Test: " << testNumber << ", Depth: " << depth << ")";
+  std::string window_name = name_strm.str();
+
+  glutInitWindowSize(display_width / 4, display_height / 2);
+  glutInitWindowPosition(100, 100);
+  glutCreateWindow("");
+  glutSetWindowTitle(window_name.c_str());
   // glutFullScreen();
 
   switch (testNumber) {
@@ -333,10 +324,8 @@ int main(int argc, char** argv)
     break;
   }
 
-
-
   // Set your glut callbacks here
-  glutDisplayFunc(display);
+  glutDisplayFunc(Display);
   glutReshapeFunc(reshape);
   glutTimerFunc(1000.0 / updateRate, timer, 0);
 
