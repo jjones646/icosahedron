@@ -14,8 +14,8 @@ using namespace std;
 #define NFACE 20
 #define NVERTEX 12
 
-#define X .525731112119133606 
-#define Z .850650808352039932
+#define X (0.525731112119133606) 
+#define Z (0.850650808352039932)
 
 // These are the 12 vertices for the icosahedron
 static GLfloat vdata[NVERTEX][3] = {    
@@ -35,35 +35,45 @@ static GLint tindices[NFACE][3] = {
 int testNumber; // Global variable indicating which test number is desired
  
 // Test cases.  Fill in your code for each test case
-void Test1()
+// draw the icosahedron in 3d space & display from any viewing angle
+void Test1(void)
+{
+
+}
+
+// Test1 + update at 10Hz rotating ~1 degree on both X & Y for each update
+void Test2(void)
 {
 }
 
-void Test2()
+// Subdivide into smaller triangles
+void Test3(void)
 {
 }
 
-void Test3()
+// Test3 + rotation and updating at 10Hz like Test2
+void Test4(void)
 {
+
 }
 
-void Test4()
-{
-}
-
+// Add 2nd argument for the depth of division - don't divide past 5
 void Test5(int depth)
 {
+
 }
 
+// Test 5 + rotation and updating at 10Hz like Test2
 void Test6(int depth)
 {
+
 }
 
 int main(int argc, char** argv)
 {
   if (argc < 2)
     {
-      std::cout << "Usage: icosahedron testnumber" << endl;
+      std::cout << "Usage: ./icosahedron <testnumber>" << endl;
       exit(1);
     }
   // Set the global test number
@@ -71,6 +81,24 @@ int main(int argc, char** argv)
   // Initialize glut  and create your window here
   // Set your glut callbacks here
   // Enter the glut main loop here
+
+  switch(testNumber){
+    case 1:
+    break;
+    case 2:
+    break;
+    case 3:
+    break;
+    case 4:
+    break;
+    case 5:
+    break;
+    case 6:
+    break;
+    default:
+    break;
+  }
+
   return 0;
 }
 
