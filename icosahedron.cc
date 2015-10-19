@@ -20,9 +20,10 @@ using namespace std;
 static const float DEG2RAD = ((M_PI) / 180);
 static const size_t NFACE = 20;
 static const size_t NVERTEX = 12;
-static int updateRate = 50;
-static int testNumber;  // Global variable indicating which test number is desired
+static int updateRate = 100;
+static int testNumber = 1;  // Global variable indicating which test number is desired
 static int depth = 1;
+static bool shouldRotate = false;
 
 // These are the 12 vertices for the icosahedron
 static GLfloat vdata[NVERTEX][3] = {
@@ -139,22 +140,25 @@ void NormFace(const GLfloat* v1, const GLfloat* v2, const GLfloat* v3, const siz
 
 /* draw triangle using face normals */
 // void drawTriangleFlat(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3])
-void DrawTriangle(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
+void DrawTriangle(const GLfloat* v1, const GLfloat* v2, const GLfloat* v3, const size_t sz, const float colors[4])
 {
   // let openGL know we're about to draw a triangle
   glBegin(GL_TRIANGLES);
   // draw a normalized face
   NormFace(v1, v2, v3, sz);
-  // set the color for the face
-  float colors[3] = { 0 };
-  for ( size_t i = 0; i < 3; ++i )
-    colors[i] = ((double) rand() / (RAND_MAX));
-
+  // now set the color
   glColor3f(colors[0], colors[1], colors[2]);
-  // glColor3f(1.0, 0.0, 0.0);
   // set the vertex points
   glVertex3fv(v1); glVertex3fv(v2); glVertex3fv(v3);
   // officially finish this segment of the drawing
+  glEnd();
+
+  // draw the lines
+  glLineWidth(2.0);
+  // white lines
+  glColor3f(1.0, 1.0, 1.0);
+  glBegin(GL_LINES);
+  glVertex3fv(v1); glVertex3fv(v2);
   glEnd();
 }
 
@@ -162,13 +166,13 @@ void DrawTriangle(GLfloat* v1, GLfloat* v2, GLfloat* v3, const size_t sz)
  * Recursively subdivide face N times
  * and draw the resulting triangles.
  */
-void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], const size_t depth)
+void Subdivide(const GLfloat v1[3], const GLfloat v2[3], const GLfloat v3[3], const size_t depth, const float colors[4])
 {
   const size_t pts = 3;
   GLfloat v12[pts], v23[pts], v31[pts];
 
   if ( depth == 0 ) {
-    DrawTriangle(v1, v2, v3, pts);
+    DrawTriangle(v1, v2, v3, pts, colors);
     return;
   }
 
@@ -181,59 +185,64 @@ void subdivide(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], const size_t depth)
   // extrude midpoints to lie on unit sphere
   Normalize(v12); Normalize(v23); Normalize(v31);
 
+  float colors_div[3][4] = { 0 };
+  for ( size_t i = 0; i < 3; ++i )
+    for ( size_t j = 0; j < 3; ++j )
+      colors_div[i][j] = colors[j] / 3;
+
   // recursively subdivide the triangle
-  subdivide(v1, v12, v31, depth - 1); subdivide(v2, v23, v12, depth - 1);
-  subdivide(v3, v31, v23, depth - 1); subdivide(v12, v23, v31, depth - 1);
+  Subdivide(v1, v12, v31, depth - 1, colors_div[0]); Subdivide(v2, v23, v12, depth - 1, colors_div[1]);
+  Subdivide(v3, v31, v23, depth - 1, colors_div[2]); Subdivide(v12, v23, v31, depth - 1, colors);
 }
 
 void Display(void)
 {
+  static bool colorsSet = false;
+  static float colors[20][4] = { 0 };
+
   // clear all
   glClear(GL_COLOR_BUFFER_BIT);
   // Clear the matrix
   glLoadIdentity();
   // Set the viewing transformation
   gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-  // Add some slight animation
-  static GLfloat transX = 0.0;
-  static GLfloat transY = 0.0;
-  static GLfloat transZ = 0.0;
-  static bool    adding = false;
-  // glTranslatef(transX, transY, transZ);
+  // translate so we can see everything
   const size_t window_x = glutGet(GLUT_WINDOW_X);
   const size_t window_y = glutGet(GLUT_WINDOW_Y);
   glTranslatef(window_x, window_y, 0.0);
-  if (adding)
-  {
-    transX += 1.0;
-    transY += 1.0;
-    transZ += 1.0;
-    if (transX > 400) adding = false;
-  }
-  else
-  {
-    transX -= 1.0;
-    transY -= 1.0;
-    transZ -= 1.0;
-    if (transX < 0.0) adding = true;
-  }
-  // glScalef(100.0, 100.0, 0);
+  // scale our object
   glScalef(window_x, window_x, 0.0);
-  // rotate
-  static GLfloat rotX = 0.0;
-  static GLfloat rotY = 0.0;
-  glRotatef(rotX, 1.0, 0.0, 0.0);
-  glRotatef(rotY, 0.0, 1.0, 0.0);
-  rotX += 1.0;
-  rotY -= 1.0;
-  // drawCircle();
+  // glScalef(100, 100, 0.0);
+
+  // rotate if we need to
+  static GLfloat rotAng = 0.0;
+  if ( shouldRotate == true ) {
+    glRotatef(rotAng, 1.0, 0.0, 0.0);
+    glRotatef(rotAng, 0.0, 1.0, 0.0);
+
+    if ( rotAng > 1.0 )
+      rotAng = 0.0;
+    else
+      rotAng += 0.1;
+  }
+
   for (size_t i = 0; i < 20; i++) {
-    subdivide(&vdata[tindices[i][0]][0],
+    // set the colors initially if we need to
+    if ( colorsSet == false ) {
+      for ( size_t j = 0; j < 3; ++j )
+        colors[i][j] = ((float) rand() / (RAND_MAX));
+    }
+
+    Subdivide(&vdata[tindices[i][0]][0],
               &vdata[tindices[i][1]][0],
               &vdata[tindices[i][2]][0],
-              depth);
+              depth,
+              colors[i]);
   }
-  glutSetColor(0, 1.0, 0.0, 0.0);
+
+  if ( colorsSet == false )
+    colorsSet = true;
+
   // Flush buffer
   glutSwapBuffers();  // for double buffering
 }
@@ -245,13 +254,12 @@ void Init(void)
   glShadeModel(GL_FLAT);
 }
 
-void reshape(int w, int h)
+void Reshape(int w, int h)
 {
   glViewport(0, 0, (GLsizei)w, (GLsizei)h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glOrtho(0.0, (GLdouble)w, (GLdouble)0.0, h, (GLdouble)w, (GLdouble) - w);
-  //glFrustum(0.0, (GLdouble)w, (GLdouble)0.0, h, (GLdouble)1, (GLdouble)40);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 }
@@ -278,8 +286,8 @@ int main(int argc, char** argv)
     testNumber = atol(argv[1]);
 
     // check for a valid test number
-    if (testNumber < 1 || testNumber > 5) {
-      std::cout << "--  Invalid test number " << +testNumber << ". Valid test numbers range from 1 to 5." << std::endl;
+    if (testNumber < 1 || testNumber > 6) {
+      std::cout << "--  Invalid test number " << +testNumber << ". Valid test numbers range from 1 to 6." << std::endl;
       exit(2);
     }
 
@@ -322,25 +330,30 @@ int main(int argc, char** argv)
   glutInitWindowPosition(100, 100);
   glutCreateWindow("");
   glutSetWindowTitle(window_name.c_str());
-  // glutFullScreen();
 
   switch (testNumber) {
   case 1:
+    shouldRotate = false;
     break;
 
   case 2:
+    shouldRotate = true;
     break;
 
   case 3:
+    shouldRotate = false;
     break;
 
   case 4:
+    shouldRotate = true;
     break;
 
   case 5:
+    shouldRotate = false;
     break;
 
   case 6:
+    shouldRotate = true;
     break;
 
   default:
@@ -350,10 +363,10 @@ int main(int argc, char** argv)
 
   // Set your glut callbacks here
   glutDisplayFunc(Display);
-  glutReshapeFunc(reshape);
+  glutReshapeFunc(Reshape);
   glutTimerFunc(1000.0 / updateRate, timer, 0);
 
-// Enter the glut main loop here
+  // Enter the glut main loop here
   Init();
   glutMainLoop();
   return 0;
